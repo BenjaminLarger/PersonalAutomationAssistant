@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Automation Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Personal Automation Assistant</h1>
+        <p style="text-align: center; color: #6c757d; margin-bottom: 30px;">
+            Automatically extract meeting details from Gmail and add them to your Apple Calendar
+        </p>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div class="controls">
+            <button id="processBtn">
+                📧 Process Meeting Emails
+            </button>
+            
+            <button id="testConnectionBtn">
+                🔗 Test Connections
+            </button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing your emails...</p>
+        </div>
+
+        <div id="results" class="meeting-list"></div>
+
+        <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+            <h3>Setup Instructions:</h3>
+            <ol>
+                <li>Create a <code>.env</code> file with your API keys (see <code>.env.example</code>)</li>
+                <li>Set up Google OAuth credentials for Gmail access</li>
+                <li>Configure CalDAV settings for Apple Calendar integration</li>
+                <li>Label emails with meeting invitations as "meetings" in Gmail</li>
+                <li>Run the automation to extract and save meeting details</li>
+            </ol>
+            
+            <h4>Required Environment Variables:</h4>
+            <ul>
+                <li><code>OPENAI_API_KEY</code> - Your OpenAI API key</li>
+                <li><code>GOOGLE_CLIENT_ID</code> - Google OAuth client ID</li>
+                <li><code>GOOGLE_CLIENT_SECRET</code> - Google OAuth client secret</li>
+                <li><code>CALDAV_URL</code> - Apple iCloud CalDAV URL</li>
+                <li><code>CALDAV_USERNAME</code> - Your Apple ID</li>
+                <li><code>CALDAV_PASSWORD</code> - App-specific password</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
