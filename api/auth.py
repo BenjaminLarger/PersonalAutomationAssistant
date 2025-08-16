@@ -6,6 +6,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
+import base64
+from bs4 import BeautifulSoup
 
 load_dotenv()
 
@@ -72,12 +74,10 @@ def get_latest_email(access_token):
       creds = Credentials(token=access_token)
       service = build('gmail', 'v1', credentials=creds)
       
-      results = service.users().messages().list(userId='me', maxResults=1).execute()
-      messages = results.get('messages', [])
-      
-      if messages:
-          message = service.users().messages().get(userId='me', id=messages[0]['id']).execute()
-          return message
+      results = service.users().messages().list(userId='me',q='in:Meetings').execute()
+      print(f"Results: {results}")
+      messages = results.get("messages", [])
+      return messages, service
     except Exception as e:
         print(f"Error fetching latest email: {e}")
         return None

@@ -2,9 +2,7 @@ import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from api import auth
-from api.auth import get_latest_email
 from starlette.middleware.sessions import SessionMiddleware
-
 
 app = FastAPI(debug=True)
 app.include_router(auth.router, prefix="/api/authentication", tags=["auth"])
@@ -29,39 +27,52 @@ async def welcome(request: Request):
         "user_name": user_name
     })
 
-@app.get("/api/latest-email")
-async def get_latest_email_endpoint(request: Request):
+@app.get("/api/meetings-content")
+async def get_all_meetings_content_endpoint(request: Request):
     """
-    Get the latest email from the user's Gmail account
+    Get all content from emails labeled 'meetings' in the user's Gmail account
     """
     access_token = request.session.get('access_token')
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    latest_email = get_latest_email(access_token)
-    if latest_email is None:
-        raise HTTPException(status_code=500, detail="Failed to fetch latest email")
+    from agents.email_processor import EmailProcessor
+    email_processor = EmailProcessor()
     
-    # Extract relevant information from the email
-    email_data = {
-        "id": latest_email.get('id'),
-        "snippet": latest_email.get('snippet'),
-        "thread_id": latest_email.get('threadId'),
-        "labels": latest_email.get('labelIds', [])
+    meetings_content = await email_processor.get_all_meetings_content(request)
+    if meetings_content is None:
+        raise HTTPException(status_code=500, detail="Failed to fetch meetings content")
+    
+    return {"success": True, "meetings_content": meetings_content, "count": len(meetings_content)}
+
+@app.post("/api/process-all-meetings")
+async def process_all_meetings_endpoint(request: Request):
+    """
+    Process all meetings content from Gmail 'meetings' label and extract meeting information
+    """
+    access_token = request.session.get('access_token')
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    from agents.email_processor import EmailProcessor
+    email_processor = EmailProcessor()
+    
+    # Get all meetings content
+    meetings_content = await email_processor.get_all_meetings_content(request)
+    if not meetings_content:
+        return {"success": True, "processed_meetings": [], "message": "No meetings found"}
+    
+    # Process each email to extract meeting information
+    processed_meetings = []
+    for email_data in meetings_content:
+        meeting_info = await email_processor.extract_meeting_info(email_data)
+        processed_meetings.append(meeting_info)
+    
+    return {
+        "success": True, 
+        "processed_meetings": processed_meetings, 
+        "total_count": len(processed_meetings)
     }
-    
-    # Extract headers for subject, from, date
-    headers = latest_email.get('payload', {}).get('headers', [])
-    for header in headers:
-        name = header.get('name', '').lower()
-        if name == 'subject':
-            email_data['subject'] = header.get('value')
-        elif name == 'from':
-            email_data['from'] = header.get('value')
-        elif name == 'date':
-            email_data['date'] = header.get('value')
-    
-    return {"success": True, "email": email_data}
 
 
 if __name__ == "__main__":

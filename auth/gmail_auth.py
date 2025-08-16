@@ -1,5 +1,6 @@
 import os
 from google.oauth2 import id_token
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from fastapi.responses import RedirectResponse
 from fastapi import APIRouter, Request, HTTPException
@@ -17,8 +18,16 @@ class GmailAuth:
         self.service = None
 
     async def get_service(self, request: Request):
+        # Check if we have an access token in session
+        access_token = request.session.get('access_token')
+        if not access_token:
+            raise HTTPException(status_code=401, detail="Not authenticated. Please login first.")
+        
+        # Create credentials and service if not exists
         if not self.service:
-            return await login(request)
+            creds = Credentials(token=access_token)
+            self.service = build('gmail', 'v1', credentials=creds)
+        
         return self.service
 
 @router.get("/login")
@@ -58,9 +67,14 @@ async def auth_callback(code: str, request: Request):
         id_info = id_token.verify_oauth2_token(id_token_value, requests.Request(), GOOGLE_CLIENT_ID)
 
         name = id_info.get('name')
-        # Store tokens (you may want to use a proper session store)
+        access_token = token_response.get('access_token')
+        
+        # Store tokens in session
+        request.session['access_token'] = access_token
+        request.session['user_name'] = name
+        
         print(f"User authenticated: {name}")
-        return {"message": f"Authentication successful for {name}", "redirect": "/"}
+        return RedirectResponse(url="/welcome", status_code=302)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid id_token: {str(e)}")

@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from langchain_openai import OpenAI
 from langchain.prompts import PromptTemplate
 from auth.gmail_auth import GmailAuth
-from fastapi import Request
+from fastapi import Request, HTTPException
 
 class EmailProcessor:
     def __init__(self):
@@ -35,49 +35,56 @@ class EmailProcessor:
             """
         )
     
-    async def get_meeting_emails(self, request: Request) -> List[Dict[str, Any]]:
+    async def get_all_meetings_content(self, request: Request) -> List[Dict[str, Any]]:
         try:
             service = await self.gmail_auth.get_service(request)
+            if not service:
+                raise Exception("Failed to get Gmail service")
             
-            # Search for emails with 'meetings' label
+            # Get all content from emails with 'meetings' label
             query = "label:meetings"
-            # results = service.users().messages().list(userId='me', q=query).execute()
-            # messages = results.get('messages', [])
+            results = service.users().messages().list(userId='me', q=query).execute()
+            messages = results.get('messages', [])
             
-            # email_data = []
-            # for message in messages[:10]:  # Limit to 10 recent emails
-            #     msg = service.users().messages().get(userId='me', id=message['id']).execute()
+            all_content = []
+            print(f"Found {len(messages)} messages")
+            for message in messages:  # Process all messages, not just 10
+                msg = service.users().messages().get(userId='me', id=message['id']).execute()
                 
-            #     # Extract email content
-            #     payload = msg['payload']
-            #     headers = payload.get('headers', [])
+                # Extract email content
+                payload = msg['payload']
+                headers = payload.get('headers', [])
                 
-            #     subject = ""
-            #     sender = ""
-            #     date = ""
+                subject = ""
+                sender = ""
+                date = ""
                 
-            #     for header in headers:
-            #         if header['name'] == 'Subject':
-            #             subject = header['value']
-            #         elif header['name'] == 'From':
-            #             sender = header['value']
-            #         elif header['name'] == 'Date':
-            #             date = header['value']
+                for header in headers:
+                    if header['name'] == 'Subject':
+                        subject = header['value']
+                    elif header['name'] == 'From':
+                        sender = header['value']
+                    elif header['name'] == 'Date':
+                        date = header['value']
                 
-            #     # Get email body
-            #     body = self._extract_body(payload)
+                # Get email body
+                body = self._extract_body(payload)
+
+                print(f"Processing email: {subject} from {sender} on {date}")
                 
-            #     email_data.append({
-            #         'id': message['id'],
-            #         'subject': subject,
-            #         'sender': sender,
-            #         'date': date,
-            #         'body': body
-            #     })
+                all_content.append({
+                    'id': message['id'],
+                    'subject': subject,
+                    'sender': sender,
+                    'date': date,
+                    'body': body
+                })
+            print(f"all_content: {all_content}")
+            return all_content
             
-            # return email_data
-            return None
-            
+        except HTTPException:
+            # Re-raise authentication errors
+            raise
         except Exception as e:
             print(f"Error fetching emails: {str(e)}")
             return []
@@ -97,7 +104,7 @@ class EmailProcessor:
         
         return body
     
-    async def parse_meeting_details(self, email_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def extract_meeting_info(self, email_data: Dict[str, Any]) -> Dict[str, Any]:
         try:
             email_content = f"""
             Subject: {email_data['subject']}
