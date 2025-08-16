@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from api import auth
 from starlette.middleware.sessions import SessionMiddleware
+from agents.email_processor import EmailProcessor
 
 app = FastAPI(debug=True)
 app.include_router(auth.router, prefix="/api/authentication", tags=["auth"])
@@ -36,7 +37,6 @@ async def get_all_meetings_content_endpoint(request: Request):
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    from agents.email_processor import EmailProcessor
     email_processor = EmailProcessor()
     
     grouped_meetings = await email_processor.get_all_meetings_content(request)
@@ -53,6 +53,21 @@ async def get_all_meetings_content_endpoint(request: Request):
         "groups_count": len(grouped_meetings)
     }
 
+@app.get("/process-meetings")
+async def process_meetings_page(request: Request):
+    """
+    Redirect to the process meetings functionality
+    """
+    access_token = request.session.get('access_token')
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Redirect to the welcome page where the actual processing happens
+    return templates.TemplateResponse("welcome.html", {
+        "request": request,
+        "user_name": request.session.get('user_name', 'User')
+    })
+
 @app.post("/api/process-all-meetings")
 async def process_all_meetings_endpoint(request: Request):
     """
@@ -62,7 +77,6 @@ async def process_all_meetings_endpoint(request: Request):
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    from agents.email_processor import EmailProcessor
     email_processor = EmailProcessor()
     
     # Get all meetings content (now grouped by subject)
@@ -76,7 +90,8 @@ async def process_all_meetings_endpoint(request: Request):
         processed_groups[subject] = []
         for email_data in emails:
             meeting_info = await email_processor.extract_meeting_info(email_data)
-            processed_groups[subject].append(meeting_info)
+            if meeting_info is not None:
+              processed_groups[subject].append(meeting_info)
     
     # Calculate total count across all groups
     total_count = sum(len(meetings) for meetings in processed_groups.values())
@@ -91,4 +106,4 @@ async def process_all_meetings_endpoint(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

@@ -5,7 +5,6 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 model = ChatOpenAI(temperature=0)
-from datetime import datetime
 
 # Define your desired data structure.
 class ParseMeetingEmail(BaseModel):
