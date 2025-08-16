@@ -1,153 +1,102 @@
 import os
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
-import caldav
-from icalendar import Calendar, Event as ICalEvent
-from caldav.lib.error import AuthorizationError
+from datetime import datetime
+from typing import Dict, Any
+from googleapiclient.errors import HttpError
 
 class CalendarManager:
-    def __init__(self):
-        self.calendar_url = None
-        self.username = None
-        self.password = None
-        self.calendar = None
-        self._setup_calendar()
-    
-    def _setup_calendar(self):
-        # For Apple Calendar, users would typically use iCloud CalDAV
-        # URL format: https://caldav.icloud.com/[user_id]/calendars/
-        # This is a simplified implementation - in production, you'd want proper OAuth
-        self.calendar_url = os.getenv('CALDAV_URL', 'https://caldav.icloud.com/')
-        self.username = os.getenv('CALDAV_USERNAME', '')
-        self.password = os.getenv('CALDAV_PASSWORD', '')
-        
-        if self.calendar_url and self.username and self.password:
-            try:
-                client = caldav.DAVClient(
-                    url=self.calendar_url,
-                    username=self.username,
-                    password=self.password
-                )
-                principal = client.principal()
-                calendars = principal.calendars()
-                if calendars:
-                    self.calendar = calendars[0]  # Use first available calendar
-            except Exception as e:
-                print(f"Warning: Could not connect to CalDAV server: {e}")
-                self.calendar = None
-    
-    async def create_event(self, meeting_details: Dict[str, Any]) -> Dict[str, Any]:
+    def __init__(self, service):
+        self.service = service
+
+    def add_event(self, meeting_details: Dict[str, Any]) -> None:
+      try:
+        # Call the Calendar API
+        now = datetime.today().strftime('%Y-%m-%d')
+        date = meeting_details.get('date', now)
+        # Convert date from DD/MM/YYYY to YYYY-MM-DD
         try:
-            if not self.calendar:
-                # Fallback: save to local file or mock response
-                return await self._create_mock_event(meeting_details)
-            
-            # Create iCalendar event
-            cal = Calendar()
-            cal.add('prodid', '-//Personal Automation Assistant//EN')
-            cal.add('version', '2.0')
-            
-            event = ICalEvent()
-            event.add('summary', meeting_details.get('subject', 'Meeting'))
-            event.add('description', meeting_details.get('description', ''))
-            
-            # Parse date and time
-            meeting_date = meeting_details.get('date', '2024-01-01')
-            meeting_time = meeting_details.get('time', '09:00')
-            duration = meeting_details.get('duration', 60)
-            
-            # Create datetime objects
-            start_datetime = datetime.strptime(f"{meeting_date} {meeting_time}", "%Y-%m-%d %H:%M")
-            end_datetime = start_datetime + timedelta(minutes=duration)
-            
-            event.add('dtstart', start_datetime)
-            event.add('dtend', end_datetime)
-            event.add('location', meeting_details.get('location', ''))
-            
-            # Add attendees
-            for attendee in meeting_details.get('attendees', []):
-                event.add('attendee', f'mailto:{attendee}')
-            
-            # Add meeting link to description if available
-            if meeting_details.get('meeting_link'):
-                description = meeting_details.get('description', '')
-                description += f"\n\nMeeting Link: {meeting_details['meeting_link']}"
-                event['description'] = description
-            
-            event.add('uid', f"meeting-{meeting_details.get('email_id', 'unknown')}")
-            event.add('dtstamp', datetime.utcnow())
-            
-            cal.add_component(event)
-            
-            # Save to CalDAV server
-            self.calendar.save_event(cal.to_ical().decode('utf-8'))
-            
-            return {
-                'id': event['uid'],
-                'status': 'created',
-                'calendar': 'Apple Calendar',
-                'start_time': start_datetime.isoformat(),
-                'end_time': end_datetime.isoformat()
-            }
-            
-        except Exception as e:
-            print(f"Error creating calendar event: {str(e)}")
-            return await self._create_mock_event(meeting_details)
-    
-    async def _create_mock_event(self, meeting_details: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Fallback method when CalDAV is not available.
-        In production, this could save to a local calendar file or queue for later sync.
-        """
-        event_id = f"mock-event-{meeting_details.get('email_id', 'unknown')}"
+            date = datetime.strptime(date, "%d/%m/%Y").strftime('%Y-%m-%d')
+        except ValueError:
+            print(f"Invalid date format: {date}. Using current date instead.")
+            date = now
+        start_time = meeting_details.get('start_time', '09:00')
+        end_time = meeting_details.get('end_time', '10:00')
+        # Ensure time format is HH:MM, then add seconds
+        if len(start_time.split(':')) == 2:  # HH:MM format
+            start_date_time = f"{date}T{start_time}:00+01:00"
+        else:  # Already includes seconds
+            start_date_time = f"{date}T{start_time}+01:00"
         
-        # Save to local file for demonstration
-        events_file = "local_events.txt"
-        with open(events_file, "a") as f:
-            f.write(f"\n--- Event Created ---\n")
-            f.write(f"ID: {event_id}\n")
-            f.write(f"Subject: {meeting_details.get('subject', 'Meeting')}\n")
-            f.write(f"Date: {meeting_details.get('date', '2024-01-01')}\n")
-            f.write(f"Time: {meeting_details.get('time', '09:00')}\n")
-            f.write(f"Duration: {meeting_details.get('duration', 60)} minutes\n")
-            f.write(f"Location: {meeting_details.get('location', 'TBD')}\n")
-            f.write(f"Attendees: {', '.join(meeting_details.get('attendees', []))}\n")
-            f.write(f"Meeting Link: {meeting_details.get('meeting_link', 'N/A')}\n")
-            f.write(f"Description: {meeting_details.get('description', 'N/A')}\n")
-            f.write(f"Created: {datetime.now().isoformat()}\n\n")
-        
-        return {
-            'id': event_id,
-            'status': 'created_locally',
-            'calendar': 'Local File (Mock)',
-            'file': events_file,
-            'start_time': f"{meeting_details.get('date', '2024-01-01')}T{meeting_details.get('time', '09:00')}:00",
-            'note': 'Event saved locally. Configure CalDAV credentials to sync with Apple Calendar.'
+        if len(end_time.split(':')) == 2:  # HH:MM format
+            end_date_time = f"{date}T{end_time}:00+01:00"
+        else:  # Already includes seconds
+            end_date_time = f"{date}T{end_time}+01:00"
+        event = {
+          'summary': meeting_details.get('subject', 'No Title'),
+          'location': meeting_details.get('location', 'Online'),
+          'description': meeting_details.get('description', 'No Description'),
+          'start': {
+            'dateTime': start_date_time,
+            'timeZone': 'Europe/Paris',
+          },
+          'end': {
+            'dateTime': end_date_time,
+            'timeZone': 'Europe/Paris',
+          },
+          'recurrence': [],
+          'attendees': [],
+          'reminders': {
+            'useDefault': False,
+            'overrides':
+            [
+              {'method': 'email', 'minutes': 2 * 60},
+              {'method': 'popup', 'minutes': 10},
+            ],
+          },
         }
-    
-    def test_connection(self) -> Dict[str, Any]:
-        """Test the CalDAV connection"""
-        if not self.calendar:
-            return {
-                'connected': False,
-                'message': 'CalDAV not configured. Using local storage fallback.',
-                'setup_instructions': [
-                    '1. Set CALDAV_URL environment variable (e.g., https://caldav.icloud.com/your_user_id/calendars/)',
-                    '2. Set CALDAV_USERNAME environment variable (your Apple ID)',
-                    '3. Set CALDAV_PASSWORD environment variable (app-specific password for iCloud)'
-                ]
-            }
-        
-        try:
-            calendars = self.calendar.principal().calendars()
-            return {
-                'connected': True,
-                'calendar_count': len(calendars),
-                'active_calendar': str(self.calendar)
-            }
-        except Exception as e:
-            return {
-                'connected': False,
-                'error': str(e),
-                'message': 'Connection test failed'
-            }
+        print(f"Adding event: {event}")
+
+        event = self.service.events().insert(calendarId='primary', body=event).execute()
+        print(f'Event created: {event.get("htmlLink")}')
+      except HttpError as error:
+        print(f"An error occurred: {error}")
+
+
+
+
+if __name__ == "__main__":
+  from google_auth_oauthlib.flow import InstalledAppFlow
+  from google.oauth2.credentials import Credentials
+  from google.auth.transport.requests import Request
+  from googleapiclient.discovery import build
+
+  SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+  creds = None
+  # The file token.json stores the user's access and refresh tokens, and is
+  # created automatically when the authorization flow completes for the first
+  # time.
+  if os.path.exists("token.json"):
+    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+  # If there are no (valid) credentials available, let the user log in.
+  if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
+      creds.refresh(Request())
+    else:
+      flow = InstalledAppFlow.from_client_secrets_file(
+          "client_secret.json", SCOPES
+      )
+      creds = flow.run_local_server(host="127.0.0.1", port=8080)
+
+  try:
+    service = build("calendar", "v3", credentials=creds)
+    a = CalendarManager(service=service)
+    a.add_event({
+      'subject': 'Test Event',
+      'location': 'Online',
+      'description': 'This is a test event',
+      'date': '06/01/2025',
+      'start_time': '10:00:00',
+      'end_time': '11:00:00',
+    })
+  except Exception as e:
+    print(f"An error occurred: {e}")
