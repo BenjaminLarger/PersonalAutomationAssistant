@@ -10,7 +10,10 @@ from google.auth.transport import requests
 router = APIRouter()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/calendar'
+]
 
 class GmailAuth:
     def __init__(self):
@@ -60,7 +63,7 @@ async def login(request: Request):
     print("Login route accessed")
     # Force localhost for Google OAuth compatibility
     redirect_uri = "http://localhost:8000/api/authentication/callback"
-    scope = "openid email profile https://www.googleapis.com/auth/gmail.readonly"
+    scope = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar"
     google_auth_url = f"https://accounts.google.com/o/oauth2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={redirect_uri}&response_type=code&scope={scope}&access_type=offline&prompt=consent"
 
     return RedirectResponse(url=google_auth_url)

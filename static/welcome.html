@@ -374,6 +374,10 @@
                 <i class="fas fa-brain"></i>
                 Process All Meetings
             </button>
+            <button onclick="createCalendarEvents()" class="btn btn-primary">
+                <i class="fas fa-calendar-plus"></i>
+                Create Calendar Events
+            </button>
             <a href="/dashboard" class="btn btn-secondary">
                 <i class="fas fa-tachometer-alt"></i>
                 Dashboard
@@ -604,6 +608,93 @@
         function closeMeetingsModal() {
             const modal = document.getElementById('meetingsModal');
             modal.style.display = 'none';
+        }
+        
+        async function createCalendarEvents() {
+            const modal = document.getElementById('meetingsModal');
+            const meetingsContent = document.getElementById('meetingsContent');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            // Show modal with loading state
+            modal.style.display = 'block';
+            modalTitle.textContent = 'Creating Calendar Events';
+            meetingsContent.innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>Processing meetings and creating calendar events...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/create-calendar-events', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Please login first');
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayCalendarEventsResult(data);
+                } else {
+                    throw new Error('Failed to create calendar events');
+                }
+            } catch (error) {
+                console.error('Error creating calendar events:', error);
+                meetingsContent.innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Error:</strong> Failed to create calendar events. ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function displayCalendarEventsResult(data) {
+            const container = document.getElementById('meetingsContent');
+            
+            let html = `
+                <div class="email-field meetings-count">
+                    <label>📅 Calendar Events Created</label>
+                    <div class="email-field-content">
+                        <strong>${data.events_created}</strong> calendar events created successfully
+                    </div>
+                </div>
+            `;
+            
+            if (data.created_events && data.created_events.length > 0) {
+                html += `
+                    <div class="email-field meeting-summary" style="margin-top: 25px; border-left-color: #28a745; background: #f0fff0;">
+                        <label>✅ Created Events</label>
+                        <div class="email-field-content">
+                `;
+                
+                data.created_events.forEach((event, index) => {
+                    html += `
+                        <div style="margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #28a745; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <strong>📅 Event ${index + 1}: ${event.subject || 'Meeting'}</strong><br><br>
+                            <strong>📅 Date:</strong> ${event.date || 'Not specified'}<br>
+                            <strong>⏰ Start:</strong> ${event.start_time || 'Not specified'}<br>
+                            <strong>⏰ End:</strong> ${event.end_time || 'Not specified'}
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
         }
         
         // Close modal when clicking outside of it

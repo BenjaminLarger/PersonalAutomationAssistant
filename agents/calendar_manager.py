@@ -61,8 +61,6 @@ class CalendarManager:
         print(f"An error occurred: {error}")
 
 
-
-
 if __name__ == "__main__":
   from google_auth_oauthlib.flow import InstalledAppFlow
   from google.oauth2.credentials import Credentials
