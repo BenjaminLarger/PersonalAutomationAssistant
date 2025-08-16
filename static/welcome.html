@@ -155,6 +155,118 @@
         .status-indicator i {
             font-size: 1rem;
         }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+        
+        .close {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        
+        .close:hover {
+            opacity: 1;
+        }
+        
+        .modal-body {
+            padding: 25px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .email-field {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .email-field label {
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .email-field-content {
+            color: #666;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #c33;
+        }
     </style>
 </head>
 <body>
@@ -200,6 +312,10 @@
                 <i class="fas fa-play"></i>
                 Process Meetings
             </a>
+            <button onclick="getLatestEmail()" class="btn btn-secondary">
+                <i class="fas fa-envelope-open"></i>
+                Get Latest Email
+            </button>
             <a href="/dashboard" class="btn btn-secondary">
                 <i class="fas fa-tachometer-alt"></i>
                 Dashboard
@@ -209,6 +325,110 @@
                 Settings
             </a>
         </div>
+
+        <!-- Email Display Modal -->
+        <div id="emailModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Latest Email</h3>
+                    <span class="close" onclick="closeEmailModal()">&times;</span>
+                </div>
+                <div class="modal-body" id="emailContent">
+                    <!-- Email content will be loaded here -->
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        async function getLatestEmail() {
+            const modal = document.getElementById('emailModal');
+            const emailContent = document.getElementById('emailContent');
+            
+            // Show modal with loading state
+            modal.style.display = 'block';
+            emailContent.innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>Fetching your latest email...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/latest-email');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.email) {
+                    displayEmail(data.email);
+                } else {
+                    throw new Error('No email data received');
+                }
+            } catch (error) {
+                console.error('Error fetching email:', error);
+                emailContent.innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Error:</strong> Failed to fetch latest email. ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function displayEmail(email) {
+            const emailContent = document.getElementById('emailContent');
+            
+            emailContent.innerHTML = `
+                <div class="email-field">
+                    <label>Subject</label>
+                    <div class="email-field-content">${email.subject || 'No subject'}</div>
+                </div>
+                <div class="email-field">
+                    <label>From</label>
+                    <div class="email-field-content">${email.from || 'Unknown sender'}</div>
+                </div>
+                <div class="email-field">
+                    <label>Date</label>
+                    <div class="email-field-content">${email.date || 'Unknown date'}</div>
+                </div>
+                <div class="email-field">
+                    <label>Preview</label>
+                    <div class="email-field-content">${email.snippet || 'No preview available'}</div>
+                </div>
+                <div class="email-field">
+                    <label>Email ID</label>
+                    <div class="email-field-content">${email.id || 'N/A'}</div>
+                </div>
+                <div class="email-field">
+                    <label>Labels</label>
+                    <div class="email-field-content">${email.labels && email.labels.length > 0 ? email.labels.join(', ') : 'No labels'}</div>
+                </div>
+            `;
+        }
+        
+        function closeEmailModal() {
+            const modal = document.getElementById('emailModal');
+            modal.style.display = 'none';
+        }
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('emailModal');
+            if (event.target === modal) {
+                closeEmailModal();
+            }
+        }
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeEmailModal();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from dotenv import load_dotenv
+from googleapiclient.discovery import build
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ print("GOOGLE_CLIENT_SECRET:", GOOGLE_CLIENT_SECRET)
 async def login(request: Request):
     print(f"request.url_for('auth_callback'): {request.url_for('auth_callback')}")
     redirect_uri = request.url_for('auth_callback')
-    scope = "openid email profile https://www.googleapis.com/auth/gmail.readonly"
+    scope = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar"
     google_auth_url = f"https://accounts.google.com/o/oauth2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
 
     return RedirectResponse(url=google_auth_url)
