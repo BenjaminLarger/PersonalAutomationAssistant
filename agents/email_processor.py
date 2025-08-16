@@ -35,7 +35,7 @@ class EmailProcessor:
             """
         )
     
-    async def get_all_meetings_content(self, request: Request) -> List[Dict[str, Any]]:
+    async def get_all_meetings_content(self, request: Request) -> Dict[str, List[Dict[str, Any]]]:
         try:
             service = await self.gmail_auth.get_service(request)
             if not service:
@@ -80,14 +80,18 @@ class EmailProcessor:
                     'body': body
                 })
             print(f"all_content: {all_content}")
-            return all_content
+            
+            # Group content by subject
+            grouped_content = self._group_by_subject(all_content)
+            print(f"grouped_content: {grouped_content}")
+            return grouped_content
             
         except HTTPException:
             # Re-raise authentication errors
             raise
         except Exception as e:
             print(f"Error fetching emails: {str(e)}")
-            return []
+            return {}
     
     def _extract_body(self, payload):
         body = ""
@@ -149,3 +153,45 @@ class EmailProcessor:
                 'description': 'Error parsing meeting details',
                 'email_id': email_data.get('id', '')
             }
+    
+    def _group_by_subject(self, all_content: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Group emails by subject, handling common email thread patterns like 'Re:', 'Fwd:', etc.
+        Returns a dictionary where keys are normalized subjects and values are lists of emails.
+        """
+        grouped = {}
+        
+        for email in all_content:
+            subject = email.get('subject', 'No Subject').strip()
+            
+            # Normalize subject by removing common prefixes
+            normalized_subject = self._normalize_subject(subject)
+            
+            if normalized_subject not in grouped:
+                grouped[normalized_subject] = []
+            
+            grouped[normalized_subject].append(email)
+        
+        # Sort groups by the most recent email date in each group
+        for subject in grouped:
+            grouped[subject].sort(key=lambda x: x.get('date', ''), reverse=True)
+        
+        return grouped
+    
+    def _normalize_subject(self, subject: str) -> str:
+        """
+        Normalize email subject by removing common prefixes and extra whitespace.
+        """
+        import re
+        
+        # Remove common email prefixes (case insensitive)
+        prefixes = [r'^re:\s*', r'^fwd?:\s*', r'^fw:\s*', r'^reply:\s*', r'^forward:\s*']
+        
+        normalized = subject
+        for prefix in prefixes:
+            normalized = re.sub(prefix, '', normalized, flags=re.IGNORECASE)
+        
+        # Remove extra whitespace and normalize
+        normalized = ' '.join(normalized.split())
+        
+        return normalized if normalized else 'No Subject'

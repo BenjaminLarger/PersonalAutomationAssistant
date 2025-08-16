@@ -39,11 +39,19 @@ async def get_all_meetings_content_endpoint(request: Request):
     from agents.email_processor import EmailProcessor
     email_processor = EmailProcessor()
     
-    meetings_content = await email_processor.get_all_meetings_content(request)
-    if meetings_content is None:
+    grouped_meetings = await email_processor.get_all_meetings_content(request)
+    if grouped_meetings is None:
         raise HTTPException(status_code=500, detail="Failed to fetch meetings content")
     
-    return {"success": True, "meetings_content": meetings_content, "count": len(meetings_content)}
+    # Calculate total count across all groups
+    total_count = sum(len(emails) for emails in grouped_meetings.values())
+    
+    return {
+        "success": True, 
+        "grouped_meetings": grouped_meetings, 
+        "total_count": total_count,
+        "groups_count": len(grouped_meetings)
+    }
 
 @app.post("/api/process-all-meetings")
 async def process_all_meetings_endpoint(request: Request):
@@ -57,21 +65,27 @@ async def process_all_meetings_endpoint(request: Request):
     from agents.email_processor import EmailProcessor
     email_processor = EmailProcessor()
     
-    # Get all meetings content
-    meetings_content = await email_processor.get_all_meetings_content(request)
-    if not meetings_content:
-        return {"success": True, "processed_meetings": [], "message": "No meetings found"}
+    # Get all meetings content (now grouped by subject)
+    grouped_meetings = await email_processor.get_all_meetings_content(request)
+    if not grouped_meetings:
+        return {"success": True, "processed_meetings": {}, "message": "No meetings found"}
     
-    # Process each email to extract meeting information
-    processed_meetings = []
-    for email_data in meetings_content:
-        meeting_info = await email_processor.extract_meeting_info(email_data)
-        processed_meetings.append(meeting_info)
+    # Process each email group to extract meeting information
+    processed_groups = {}
+    for subject, emails in grouped_meetings.items():
+        processed_groups[subject] = []
+        for email_data in emails:
+            meeting_info = await email_processor.extract_meeting_info(email_data)
+            processed_groups[subject].append(meeting_info)
+    
+    # Calculate total count across all groups
+    total_count = sum(len(meetings) for meetings in processed_groups.values())
     
     return {
         "success": True, 
-        "processed_meetings": processed_meetings, 
-        "total_count": len(processed_meetings)
+        "processed_meetings": processed_groups, 
+        "total_count": total_count,
+        "groups_count": len(processed_groups)
     }
 
 
