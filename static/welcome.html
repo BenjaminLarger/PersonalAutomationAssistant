@@ -321,6 +321,67 @@
         .email-item:hover {
             transform: translateX(5px);
         }
+        
+        /* Workflow Styles */
+        .workflow-container {
+            margin: 30px 0;
+        }
+        
+        .workflow-steps {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .workflow-step {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        
+        .workflow-card {
+            flex: 1;
+            border: 2px solid #667eea;
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+        
+        .workflow-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.25);
+            border-color: #764ba2;
+        }
+        
+        .workflow-arrow {
+            color: #667eea;
+            font-size: 2rem;
+            margin: 10px 0;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .workflow-step {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+        }
     </style>
 </head>
 <body>
@@ -338,21 +399,41 @@
             </div>
         </div>
 
-        <div class="features-grid">
-          <div class="feature-card">
-            <i class="fas fa-calendar-alt"></i>
-            <h3>Calendar Integration</h3>
-            <p>Seamlessly add extracted meetings to your Apple Calendar via CalDAV</p>
-          </div>
-          <div class="feature-card">
-            <i class="fas fa-robot"></i>
-            <h3>AI Automation</h3>
-            <p>Powered by OpenAI and LangChain for intelligent meeting data extraction</p>
-          </div>
-          <div class="feature-card">
-              <i class="fas fa-envelope"></i>
-              <h3>Email Processing</h3>
-              <p>Automatically extract meeting information from your Gmail using AI-powered analysis</p>
+        <div class="workflow-container">
+          <h2 style="text-align: center; color: #333; margin-bottom: 30px; font-size: 1.8rem;">Program Workflow</h2>
+          
+          <div class="workflow-steps">
+            <div class="workflow-step">
+              <div class="feature-card workflow-card">
+                <i class="fas fa-envelope"></i>
+                <h3>Email Processing</h3>
+                <p>Automatically extract meeting information from your Gmail using AI-powered analysis</p>
+              </div>
+            </div>
+            
+            <div class="workflow-arrow">
+              <i class="fas fa-arrow-down"></i>
+            </div>
+            
+            <div class="workflow-step">
+              <div class="feature-card workflow-card">
+                <i class="fas fa-robot"></i>
+                <h3>AI Automation</h3>
+                <p>Powered by OpenAI and LangChain for intelligent meeting data extraction</p>
+              </div>
+            </div>
+            
+            <div class="workflow-arrow">
+              <i class="fas fa-arrow-down"></i>
+            </div>
+            
+            <div class="workflow-step">
+              <div class="feature-card workflow-card">
+                <i class="fas fa-calendar-alt"></i>
+                <h3>Calendar Integration</h3>
+                <p>Seamlessly add extracted meetings to your Apple Calendar via CalDAV</p>
+              </div>
+            </div>
           </div>
         </div>
 
