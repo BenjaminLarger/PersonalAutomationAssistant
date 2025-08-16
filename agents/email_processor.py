@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from langchain_openai import OpenAI
 from langchain.prompts import PromptTemplate
 from auth.gmail_auth import GmailAuth
+from fastapi import Request
 
 class EmailProcessor:
     def __init__(self):
@@ -34,47 +35,48 @@ class EmailProcessor:
             """
         )
     
-    async def get_meeting_emails(self, user_id: str = "default") -> List[Dict[str, Any]]:
+    async def get_meeting_emails(self, request: Request) -> List[Dict[str, Any]]:
         try:
-            service = self.gmail_auth.get_service()
+            service = await self.gmail_auth.get_service(request)
             
             # Search for emails with 'meetings' label
             query = "label:meetings"
-            results = service.users().messages().list(userId='me', q=query).execute()
-            messages = results.get('messages', [])
+            # results = service.users().messages().list(userId='me', q=query).execute()
+            # messages = results.get('messages', [])
             
-            email_data = []
-            for message in messages[:10]:  # Limit to 10 recent emails
-                msg = service.users().messages().get(userId='me', id=message['id']).execute()
+            # email_data = []
+            # for message in messages[:10]:  # Limit to 10 recent emails
+            #     msg = service.users().messages().get(userId='me', id=message['id']).execute()
                 
-                # Extract email content
-                payload = msg['payload']
-                headers = payload.get('headers', [])
+            #     # Extract email content
+            #     payload = msg['payload']
+            #     headers = payload.get('headers', [])
                 
-                subject = ""
-                sender = ""
-                date = ""
+            #     subject = ""
+            #     sender = ""
+            #     date = ""
                 
-                for header in headers:
-                    if header['name'] == 'Subject':
-                        subject = header['value']
-                    elif header['name'] == 'From':
-                        sender = header['value']
-                    elif header['name'] == 'Date':
-                        date = header['value']
+            #     for header in headers:
+            #         if header['name'] == 'Subject':
+            #             subject = header['value']
+            #         elif header['name'] == 'From':
+            #             sender = header['value']
+            #         elif header['name'] == 'Date':
+            #             date = header['value']
                 
-                # Get email body
-                body = self._extract_body(payload)
+            #     # Get email body
+            #     body = self._extract_body(payload)
                 
-                email_data.append({
-                    'id': message['id'],
-                    'subject': subject,
-                    'sender': sender,
-                    'date': date,
-                    'body': body
-                })
+            #     email_data.append({
+            #         'id': message['id'],
+            #         'subject': subject,
+            #         'sender': sender,
+            #         'date': date,
+            #         'body': body
+            #     })
             
-            return email_data
+            # return email_data
+            return None
             
         except Exception as e:
             print(f"Error fetching emails: {str(e)}")

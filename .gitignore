@@ -43,3 +43,5 @@ local_events.txt
 # OS
 .DS_Store
 Thumbs.db
+
+client_secret.json
