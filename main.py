@@ -6,7 +6,7 @@ from api.auth import get_latest_email
 from starlette.middleware.sessions import SessionMiddleware
 
 
-app = FastAPI()
+app = FastAPI(debug=True)
 app.include_router(auth.router, prefix="/api/authentication", tags=["auth"])
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "default_secret_key"))
 
@@ -62,3 +62,8 @@ async def get_latest_email_endpoint(request: Request):
             email_data['date'] = header.get('value')
     
     return {"success": True, "email": email_data}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
