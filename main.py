@@ -56,21 +56,6 @@ async def get_all_meetings_content_endpoint(request: Request):
         "groups_count": len(grouped_meetings)
     }
 
-@app.get("/process-meetings")
-async def process_meetings_page(request: Request):
-    """
-    Redirect to the process meetings functionality
-    """
-    access_token = request.session.get('access_token')
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    # Redirect to the welcome page where the actual processing happens
-    return templates.TemplateResponse("welcome.html", {
-        "request": request,
-        "user_name": request.session.get('user_name', 'User')
-    })
-
 @app.post("/api/process-all-meetings")
 async def process_all_meetings_endpoint(request: Request):
     """
