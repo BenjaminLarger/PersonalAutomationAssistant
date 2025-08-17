@@ -3,8 +3,8 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from api import auth
 from starlette.middleware.sessions import SessionMiddleware
-from agents.email_processor import EmailProcessor
-from agents.calendar_manager import CalendarManager
+from services.email_processor import EmailProcessor
+from services.calendar_manager import CalendarManager
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
