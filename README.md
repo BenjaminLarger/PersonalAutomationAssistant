@@ -1,6 +1,28 @@
 # Personal Automation Assistant
 
-An AI-powered automation agent that extracts meeting details from Gmail and automatically adds them to your Apple Calendar.
+An AI-powered automation agent that creates a multi-step workflow: Gmail → OpenAI Processing → Calendar Integration. Features an enhanced UI that highlights the complete program workflow for better user experience.
+
+## 🔄 Workflow Overview
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│                 │    │                 │    │                 │    │                 │
+│   📧 Gmail      │───▶│  🤖 OpenAI      │───▶│  📅 Google      │───▶│  ✅ Results     │
+│   Email Fetch   │    │  AI Processing  │    │  Calendar       │    │  Display        │
+│                 │    │                 │    │  Integration    │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                       │                       │                       │
+        ▼                       ▼                       ▼                       ▼
+  • OAuth Login          • LangChain           • Calendar API        • Web UI Results
+  • Fetch "meetings"     • Extract Details     • Create Events       • Success/Error
+  • Label Filter         • JSON Parsing        • Event Scheduling    • Event Summary
+```
+
+### Process Steps:
+1. **Gmail Authentication** - OAuth 2.0 login and fetch emails labeled "meetings"
+2. **AI Analysis** - LangChain + OpenAI extract structured meeting data (title, date, time, location)
+3. **Calendar Creation** - Google Calendar API creates calendar events automatically
+4. **Results Display** - Web interface shows processing results and created events
 
 ## 🚀 Quick Start
 
@@ -27,7 +49,7 @@ An AI-powered automation agent that extracts meeting details from Gmail and auto
 ### MVP (Milestone 1)
 - ✅ Gmail OAuth integration for reading emails with "meetings" label
 - ✅ OpenAI integration for extracting meeting details
-- ✅ Apple Calendar integration via CalDAV
+- ✅ Google Calendar integration via Google Calendar API
 - ✅ Simple web UI for triggering automation
 - ✅ FastAPI backend with LangChain integration
 
@@ -50,11 +72,11 @@ An AI-powered automation agent that extracts meeting details from Gmail and auto
 4. Create OAuth 2.0 credentials
 5. Add your credentials to `.env` file
 
-### 2. Apple Calendar Setup
-1. Enable two-factor authentication on your Apple ID
-2. Generate an app-specific password at appleid.apple.com
-3. Add your Apple ID and app password to `.env` file
-4. Use the CalDAV URL format: `https://caldav.icloud.com/[user_id]/calendars/`
+### 2. Google Calendar Setup
+1. In Google Cloud Console, enable the Google Calendar API
+2. Use the same OAuth credentials from Gmail setup
+3. Ensure your OAuth scope includes Calendar access
+4. Calendar events will be created in your default Google Calendar
 
 ### 3. OpenAI Setup
 1. Get an API key from OpenAI
@@ -66,7 +88,7 @@ An AI-powered automation agent that extracts meeting details from Gmail and auto
 PersonalAutomationAssistant/
 ├── agents/
 │   ├── email_processor.py    # Gmail integration & AI parsing
-│   └── calendar_manager.py   # Apple Calendar integration
+│   └── calendar_manager.py   # Google Calendar integration
 ├── auth/
 │   └── gmail_auth.py         # Gmail OAuth handling
 ├── static/
@@ -88,9 +110,8 @@ OPENAI_API_KEY=your_openai_api_key
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 SECRET_KEY=your_secret_key_for_sessions
-CALDAV_URL=https://caldav.icloud.com/your_user_id/calendars/
-CALDAV_USERNAME=your_apple_id@icloud.com
-CALDAV_PASSWORD=your_app_specific_password
+# Google Calendar uses the same OAuth credentials as Gmail
+# No additional calendar-specific credentials needed
 ```
 
 ## 🎯 Usage
@@ -104,10 +125,10 @@ CALDAV_PASSWORD=your_app_specific_password
    - The system will:
      - Fetch emails with "meetings" label
      - Extract meeting details using OpenAI
-     - Create calendar events in Apple Calendar
+     - Create calendar events in Google Calendar
 
 3. **View Results**
-   - Check your Apple Calendar for new events
+   - Check your Google Calendar for new events
    - View processing results in the web UI
 
 ## 🧠 AI Integration
@@ -131,8 +152,8 @@ The AI extracts:
 
 ### Current (MVP)
 - Environment variable management
-- OAuth 2.0 for Gmail access
-- App-specific passwords for Apple ID
+- OAuth 2.0 for Gmail and Google Calendar access
+- Unified Google authentication flow
 
 ### Planned (Milestone 3)
 - User authentication and authorization
@@ -157,7 +178,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ### Testing
 - Test Gmail connection via OAuth flow
 - Validate OpenAI API integration
-- Test CalDAV calendar creation
+- Test Google Calendar API integration
 - End-to-end automation testing
 
 ## 📈 Future Enhancements
@@ -196,8 +217,8 @@ MIT License - see LICENSE file for details
    - Verify client credentials
 
 2. **Calendar events not appearing**
-   - Check CalDAV URL format
-   - Verify app-specific password
+   - Ensure Google Calendar API is enabled
+   - Check OAuth scope includes calendar access
    - Test calendar connection endpoint
 
 3. **OpenAI parsing errors**
